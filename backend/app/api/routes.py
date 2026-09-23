@@ -1,11 +1,13 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 
+from app.core.deepgram import deepgram
 from app.core.pipeline import run_pipeline
 from app.core.gemini import gemini
 from app.core.store import store
 from app.schemas.contracts import (
     DiagnoseRequest, InterventionCompleteRequest, InterventionStartRequest,
-    QuestionRequest, ResetRequest, SimulationRequest, TeachRequest,
+    QuestionRequest, ResetRequest, SimulationRequest, TeachRequest, VoiceRequest,
 )
 from app.simulator.scenarios import SCENARIOS, simulate
 
@@ -133,7 +135,22 @@ def voice_tool(request: QuestionRequest):
 
 @router.get("/voice/config")
 def voice_config():
-    return {"provider": "browser_speech_synthesis", "available": True, "external_api_required": False}
+    return {
+        "provider": "deepgram_with_browser_fallback",
+        "available": True,
+        "deepgram_available": deepgram.enabled,
+        "browser_fallback_available": True,
+        "format": "audio/mpeg",
+    }
+
+
+@router.post("/voice/speak")
+def voice_speak(request: VoiceRequest):
+    try:
+        audio = deepgram.synthesize(request.text)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return Response(content=audio, media_type="audio/mpeg", headers={"Content-Disposition": "inline; filename=companion.mp3"})
 
 
 @router.post("/teach")

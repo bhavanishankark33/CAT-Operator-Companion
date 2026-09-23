@@ -14,7 +14,7 @@ A proactive operator companion that:
 ## Stack
 - Frontend: React + Vite + Tailwind CSS
 - Backend: Python + FastAPI
-- Voice: browser speech synthesis, with the existing Vapi frontend integration still available
+- Voice: optional Deepgram MP3 TTS with free browser speech fallback
 - Storage: local JSON file (`data/companion_state.json`)
 - LLM: Gemini API with optional comma-separated key rotation
 - Simulation: Python
@@ -46,3 +46,5 @@ python -m uvicorn app.main:app --reload
 ```
 
 The demo works without an LLM key. To enable Gemini explanations and lessons, set `GEMINI_API_KEY`, or provide multiple keys with `GEMINI_API_KEYS=key1,key2,key3`. The backend rotates keys when a request fails or reaches quota, then falls back to deterministic answers.
+
+To enable generated audio, set `DEEPGRAM_API_KEYS=key1,key2,key3`. The backend rotates keys on failed requests through `POST /api/voice/speak`. If Deepgram is unavailable, the frontend should speak the returned `speech_text` with browser speech synthesis.

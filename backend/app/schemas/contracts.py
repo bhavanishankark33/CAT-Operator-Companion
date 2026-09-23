@@ -143,6 +143,10 @@ class QuestionRequest(BaseModel):
     question: str
 
 
+class VoiceRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+
+
 class TeachRequest(BaseModel):
     operator_id: str = "OP001"
     skill: str = "swing_efficiency"

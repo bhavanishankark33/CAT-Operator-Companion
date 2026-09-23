@@ -3,6 +3,11 @@ import os
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from app.core.config import load_local_env
+
+
+load_local_env()
+
 
 class GeminiAssistant:
     """Small REST client with key rotation and a deterministic offline fallback."""

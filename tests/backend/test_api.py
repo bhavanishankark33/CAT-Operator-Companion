@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.core.store import store
+from app.core.gemini import gemini
 from app.main import app
 
 
@@ -9,6 +10,7 @@ client = TestClient(app)
 
 def setup_function():
     store.reset()
+    gemini.keys = []
 
 
 def test_worker_scenario_updates_shared_state_and_intervention():
@@ -79,7 +81,9 @@ def test_voice_contract_works_without_external_voice_api_or_gemini_key():
     assert response.json()["speech_text"]
     assert response.json()["source"] == "deterministic_fallback"
     assert config.json() == {
-        "provider": "browser_speech_synthesis",
+        "provider": "deepgram_with_browser_fallback",
         "available": True,
-        "external_api_required": False,
+        "deepgram_available": True,
+        "browser_fallback_available": True,
+        "format": "audio/mpeg",
     }

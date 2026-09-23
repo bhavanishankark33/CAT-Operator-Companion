@@ -94,6 +94,7 @@ POST /api/simulate
 POST /api/ask
 POST /api/voice/tool
 GET  /api/voice/config
+POST /api/voice/speak
 POST /api/teach
 POST /api/diagnose
 POST /api/intervention/start
@@ -101,4 +102,4 @@ POST /api/intervention/complete
 POST /api/reset
 ```
 
-Voice returns `speech_text`. The browser can speak it with the Web Speech API, which is free and does not require a 60-minute audio quota or another secret key.
+Voice returns `speech_text`. `POST /api/voice/speak` returns `audio/mpeg` from Deepgram when configured; the browser can use Web Speech API as a free fallback.
