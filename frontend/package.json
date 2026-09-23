@@ -9,15 +9,16 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vapi-ai/web": "latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^2.15.0",
-    "@vapi-ai/web": "latest"
+    "recharts": "^2.15.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
+    "tailwindcss": "^4.3.3",
     "vite": "latest",
-    "vitest": "latest",
-    "tailwindcss": "latest"
+    "vitest": "latest"
   }
 }
