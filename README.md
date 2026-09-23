@@ -37,6 +37,16 @@ Integration boundary:
 
 See `docs/TEAM_WORKFLOW.md`.
 
+## Run the judge demo
+
+From the repository root:
+
+```powershell
+python scripts/demo_smoke.py
+```
+
+This runs the predictive safety, closed-loop performance, and troubleshooting scenarios without calling Gemini, Deepgram, a database, or the frontend.
+
 ## Backend quick start
 
 ```powershell

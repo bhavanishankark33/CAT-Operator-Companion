@@ -4,7 +4,7 @@
 Synthetic Simulator
        |
        v
-Event Bus / Event Store
+Local JSON Event Store
        |
        v
 Shared Operational State
@@ -23,7 +23,7 @@ Situation           Risk Engine        IntentGuard
                 Companion Orchestrator
                     /           \
                    /             \
-             Dashboard          Vapi Voice
+             Dashboard          Deepgram / Browser Voice
                    \             /
                     \           /
                      Operator
@@ -36,6 +36,8 @@ Situation           Risk Engine        IntentGuard
                           |
                           +----> next event
 ```
+
+The prototype intentionally uses local JSON instead of PostgreSQL, Redis, or a vector database. This keeps the demo reproducible while preserving replaceable interfaces for real telemetry and production storage.
 
 ## Responsibilities
 
@@ -66,5 +68,5 @@ Combines analysis into one intervention decision: silent, UI, voice, or urgent v
 ### 9. Counterfactual
 After an event, estimates a better alternative, creates one intervention, observes the next few cycles, and verifies improvement.
 
-### 10. Frontend + Vapi
-Provides the operator-facing experience. These are interaction surfaces, not the source of truth.
+### 10. Frontend + Voice
+Provides the operator-facing experience. Deepgram returns audio when configured; browser speech synthesis is the no-key fallback. These are interaction surfaces, not the source of truth.

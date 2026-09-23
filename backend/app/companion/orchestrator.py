@@ -29,19 +29,19 @@ class CompanionOrchestrator:
                 reason="critical_operating_risk",
                 expires_in_sec=8,
             )
+        if state.performance.deviation and state.safety.risk == "LOW":
+            return Intervention(
+                level=1,
+                channel="dashboard",
+                message="Cycle time is above your recent efficient baseline; the swing phase is the main contributor.",
+                reason="performance_deviation",
+            )
         if highest_risk == "MEDIUM":
             return Intervention(
                 level=1,
                 channel="dashboard",
                 message=state.safety.active_alert or "A medium-risk condition needs attention.",
                 reason="risk_condition",
-            )
-        if state.performance.deviation:
-            return Intervention(
-                level=1,
-                channel="dashboard",
-                message="Cycle time is above your recent efficient baseline; the swing phase is the main contributor.",
-                reason="performance_deviation",
             )
         return None
 

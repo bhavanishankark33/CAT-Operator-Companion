@@ -13,13 +13,13 @@ Own:
 - intentguard
 - performance
 - counterfactual
+- companion
+- knowledge
 
 Person 2:
 `feature/experience-voice`
 
 Own:
-- companion
-- knowledge
 - API integration
 - frontend
 - Vapi integration

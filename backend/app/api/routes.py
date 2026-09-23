@@ -5,6 +5,7 @@ from app.core.deepgram import deepgram
 from app.core.pipeline import run_pipeline
 from app.core.gemini import gemini
 from app.core.store import store
+from app.knowledge import KnowledgeService
 from app.schemas.contracts import (
     DiagnoseRequest, InterventionCompleteRequest, InterventionStartRequest,
     QuestionRequest, ResetRequest, SimulationRequest, TeachRequest, VoiceRequest,
@@ -12,6 +13,7 @@ from app.schemas.contracts import (
 from app.simulator.scenarios import SCENARIOS, simulate
 
 router = APIRouter(prefix="/api")
+knowledge = KnowledgeService()
 
 
 @router.get("/state")
@@ -113,16 +115,8 @@ def post_simulation(request: SimulationRequest):
 
 @router.post("/ask")
 def ask(request: QuestionRequest):
-    question = request.question.lower()
     state = store.state
-    if "eta" in question or "time" in question:
-        answer = f"Your ETA is {state.task.eta_minutes:.0f} minutes because recent cycles average {sum(state.performance.recent_cycle_times) / len(state.performance.recent_cycle_times):.1f} seconds, above the {state.task.baseline_cycle_time:.1f}-second baseline."
-    elif "warning" in question or "worker" in question:
-        answer = "The warning indicates a worker is approaching the predicted swing area. Hold movement until the area is clear."
-    elif "improve" in question or "efficien" in question:
-        answer = "Focus on a smooth, shorter swing for the next three cycles. I will compare cycle time and swing duration with your baseline."
-    else:
-        answer = "I can explain the current ETA, safety warning, machine condition, or performance coaching from the live simulated state."
+    answer = knowledge.answer(request.question, state)
     answer, source = gemini.answer(request.question, state.model_dump(mode="json"), answer)
     return {"answer": answer, "speech_text": answer, "source": source, "confidence": 0.92}
 
@@ -156,14 +150,7 @@ def voice_speak(request: VoiceRequest):
 @router.post("/teach")
 def teach(request: TeachRequest):
     counterfactual = store.state.counterfactual
-    lesson = "For your next three cycles, keep the swing smooth and within your efficient range. Avoid unnecessary travel before dumping."
-    if counterfactual:
-        lesson = (
-            f"Your recent cycle averaged {counterfactual['observed_metric']:.1f} seconds. "
-            f"The {counterfactual['dominant_contributor'].lower()} phase added about "
-            f"{counterfactual['estimated_excess_seconds']:.1f} seconds. For the next three cycles, "
-            "use a smooth, shorter swing and I will verify the improvement."
-        )
+    lesson = knowledge.lesson(request.skill, counterfactual)
     lesson, source = gemini.answer(
         f"Create a 30-second micro-lesson for the skill {request.skill}.",
         store.state.model_dump(mode="json"),
@@ -183,13 +170,7 @@ def teach(request: TeachRequest):
 
 @router.post("/diagnose")
 def diagnose(request: DiagnoseRequest):
-    if "start" not in request.symptom.lower():
-        return {"answer": "I do not have a verified guide for that symptom. Stop and request qualified service support.", "grounded": False}
-    return {
-        "answer": "Verify operator presence and displayed warnings, then check the basic start conditions in the provided machine guide. If unresolved, stop troubleshooting and request qualified service support.",
-        "grounded": True,
-        "source": "synthetic_curated_startup_guide",
-    }
+    return knowledge.diagnose(request.symptom)
 
 
 @router.post("/intervention/start")
