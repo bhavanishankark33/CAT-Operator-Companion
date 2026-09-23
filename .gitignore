@@ -4,5 +4,7 @@ dist/
 __pycache__/
 .pytest_cache/
 .env
+data/companion_state.json
+data/companion_state.tmp
 *.pyc
 .DS_Store

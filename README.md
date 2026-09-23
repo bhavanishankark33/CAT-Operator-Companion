@@ -14,12 +14,10 @@ A proactive operator companion that:
 ## Stack
 - Frontend: React + Vite + Tailwind CSS
 - Backend: Python + FastAPI
-- Voice: Vapi
-- Database: PostgreSQL
-- Realtime/event flow: Redis Streams
-- ML/data: Python, Pandas, NumPy, scikit-learn
-- RAG: FAISS
-- LLM: frontier LLM API
+- Voice: browser speech synthesis (free fallback), with the existing Vapi frontend integration still available
+- Storage: local JSON file (`data/companion_state.json`)
+- LLM: Gemini API with optional comma-separated key rotation
+- Voice: browser speech synthesis, no voice API key required
 - Simulation: Python
 - Testing: Pytest + frontend tests
 - Git: GitHub feature branches
@@ -39,3 +37,13 @@ Integration boundary:
 `Event -> Shared State -> Analysis -> Decision -> Action -> Event`
 
 See `docs/TEAM_WORKFLOW.md`.
+
+## Backend quick start
+
+```powershell
+cd backend
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
+```
+
+The demo works without an LLM key. To enable Gemini explanations and lessons, set `GEMINI_API_KEY`, or provide multiple keys with `GEMINI_API_KEYS=key1,key2,key3`. The backend rotates keys when a request fails or reaches quota, then falls back to deterministic answers.

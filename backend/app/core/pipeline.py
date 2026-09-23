@@ -89,4 +89,5 @@ def run_pipeline(store: StateStore, event_type: str, **payload) -> dict:
         store.alerts.insert(0, {"event": event.model_dump(mode="json"), "intervention": state.intervention.model_dump()})
 
     state.recent_events = store.events[:20]
+    store.save()
     return {"event": event, "state": state, "intentguard": prediction, "intervention": state.intervention}

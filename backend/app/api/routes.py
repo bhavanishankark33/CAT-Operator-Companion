@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.core.pipeline import run_pipeline
+from app.core.gemini import gemini
 from app.core.store import store
 from app.schemas.contracts import (
     DiagnoseRequest, InterventionCompleteRequest, InterventionStartRequest,
@@ -80,21 +81,35 @@ def ask(request: QuestionRequest):
         answer = "Focus on a smooth, shorter swing for the next three cycles. I will compare cycle time and swing duration with your baseline."
     else:
         answer = "I can explain the current ETA, safety warning, machine condition, or performance coaching from the live simulated state."
-    return {"answer": answer, "source": "live_operational_state", "confidence": 0.92}
+    answer, source = gemini.answer(request.question, state.model_dump(mode="json"), answer)
+    return {"answer": answer, "speech_text": answer, "source": source, "confidence": 0.92}
 
 
 @router.post("/voice/tool")
 def voice_tool(request: QuestionRequest):
-    """Vapi-compatible text tool boundary; speech transport stays outside this service."""
+    """Voice transport boundary; the frontend can speak speech_text with browser speech synthesis."""
     return ask(request)
+
+
+@router.get("/voice/config")
+def voice_config():
+    return {"provider": "browser_speech_synthesis", "available": True, "external_api_required": False}
 
 
 @router.post("/teach")
 def teach(request: TeachRequest):
+    lesson = "For your next three cycles, keep the swing smooth and within your efficient range. Avoid unnecessary travel before dumping."
+    lesson, source = gemini.answer(
+        f"Create a 30-second micro-lesson for the skill {request.skill}.",
+        store.state.model_dump(mode="json"),
+        lesson,
+    )
     return {
         "skill": request.skill,
         "problem": "slow_cycle",
-        "lesson": "For your next three cycles, keep the swing smooth and within your efficient range. Avoid unnecessary travel before dumping.",
+        "lesson": lesson,
+        "speech_text": lesson,
+        "source": source,
         "trial_cycles": 3,
         "metric": "cycle_time",
         "secondary_metric": "swing_duration",
@@ -123,6 +138,7 @@ def start_intervention(request: InterventionStartRequest):
         "before_metric": sum(store.state.performance.recent_cycle_times) / len(store.state.performance.recent_cycle_times),
     }
     store.training.insert(0, intervention)
+    store.save()
     return intervention
 
 

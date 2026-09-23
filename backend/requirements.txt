@@ -1,14 +1,5 @@
 fastapi
 uvicorn[standard]
 pydantic
-pydantic-settings
-python-dotenv
-pandas
-numpy
-scikit-learn
-sqlalchemy
-psycopg2-binary
-redis
-faiss-cpu
 httpx
 pytest

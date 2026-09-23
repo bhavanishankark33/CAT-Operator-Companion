@@ -44,3 +44,17 @@ def test_diagnosis_is_grounded_and_unknown_symptom_is_not_invented():
 
     assert known["grounded"] is True
     assert unknown["grounded"] is False
+
+
+def test_voice_contract_works_without_external_voice_api_or_gemini_key():
+    response = client.post("/api/voice/tool", json={"question": "Why did my ETA increase?"})
+    config = client.get("/api/voice/config")
+
+    assert response.status_code == 200
+    assert response.json()["speech_text"]
+    assert response.json()["source"] == "deterministic_fallback"
+    assert config.json() == {
+        "provider": "browser_speech_synthesis",
+        "available": True,
+        "external_api_required": False,
+    }
