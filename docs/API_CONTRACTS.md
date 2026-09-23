@@ -74,3 +74,31 @@ Keep these stable so both people can work independently.
   "verification_status": "pending"
 }
 ```
+
+## Frontend endpoints
+
+The backend is intentionally local-first. It stores state, events, alerts, and training history in `data/companion_state.json`.
+
+```text
+GET  /api/state
+GET  /api/analysis
+GET  /api/risk
+GET  /api/events
+GET  /api/alerts
+GET  /api/performance
+GET  /api/training
+GET  /api/counterfactual
+GET  /api/scenarios
+GET  /api/operator-profile/{id}
+POST /api/simulate
+POST /api/ask
+POST /api/voice/tool
+GET  /api/voice/config
+POST /api/teach
+POST /api/diagnose
+POST /api/intervention/start
+POST /api/intervention/complete
+POST /api/reset
+```
+
+Voice returns `speech_text`. The browser can speak it with the Web Speech API, which is free and does not require a 60-minute audio quota or another secret key.

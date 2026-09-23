@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime, timezone
 from threading import Lock
 from pathlib import Path
 
@@ -64,6 +65,28 @@ class StateStore:
             self.events = self.events[:100]
             self.state.recent_events = self.events[:20]
             self._save_unlocked()
+
+    def add_alert(self, alert: dict) -> bool:
+        """Keep identical conditions from repeating an intervention within 30 seconds."""
+        event = alert.get("event", {})
+        reason = alert.get("intervention", {}).get("reason")
+        machine_id = event.get("machine_id")
+        now = datetime.now(timezone.utc)
+        for previous in self.alerts[:10]:
+            previous_event = previous.get("event", {})
+            previous_reason = previous.get("intervention", {}).get("reason")
+            if previous_reason != reason or previous_event.get("machine_id") != machine_id:
+                continue
+            try:
+                age = (now - datetime.fromisoformat(previous_event["timestamp"].replace("Z", "+00:00"))).total_seconds()
+            except (KeyError, ValueError):
+                age = 999
+            if age < 30:
+                return False
+        self.alerts.insert(0, alert)
+        self.alerts = self.alerts[:30]
+        self.save()
+        return True
 
 
 store = StateStore()

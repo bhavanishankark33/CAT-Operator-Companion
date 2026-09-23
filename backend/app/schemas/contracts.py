@@ -68,6 +68,9 @@ class PerformanceState(BaseModel):
     })
     deviation: bool = False
     dominant_contributor: str | None = None
+    average_cycle_time: float = 33.2
+    estimated_excess_seconds: float = 0.0
+    counterfactual_cycle_time: float | None = None
 
 
 class Event(BaseModel):
@@ -99,6 +102,9 @@ class SharedState(BaseModel):
     performance: PerformanceState = Field(default_factory=PerformanceState)
     recent_events: list[Event] = Field(default_factory=list)
     intentguard: dict[str, Any] = Field(default_factory=dict)
+    situation: dict[str, Any] = Field(default_factory=dict)
+    risk_predictions: list[dict[str, Any]] = Field(default_factory=list)
+    counterfactual: dict[str, Any] | None = None
     intervention: Intervention | None = None
 
 
@@ -155,3 +161,7 @@ class InterventionStartRequest(BaseModel):
 class InterventionCompleteRequest(BaseModel):
     intervention_id: str
     cycle_times: list[float] = Field(min_length=1)
+
+
+class ResetRequest(BaseModel):
+    keep_training: bool = False

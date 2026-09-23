@@ -36,6 +36,31 @@ def test_slow_cycles_start_and_complete_a_training_loop():
     assert completed.status_code == 200
     assert completed.json()["result"] == "positive"
     assert client.get("/api/training").json()[0]["status"] == "completed"
+    assert client.get("/api/counterfactual").json()["verification_status"] == "positive"
+    assert client.get("/api/state").json()["performance"]["recent_cycle_times"] == [35.0, 33.0, 32.0]
+
+
+def test_analysis_and_scenario_catalog_support_the_demo_flow():
+    client.post("/api/reset")
+    client.post("/api/simulate", json={"scenario": "WORKER_APPROACHING"})
+    analysis = client.get("/api/analysis").json()
+    scenarios = client.get("/api/scenarios").json()["scenarios"]
+
+    assert analysis["situation"]["situation"] == "worker_approaching_operating_machine"
+    assert analysis["risk_predictions"][0]["type"] == "PREDICTED_WORKER_INTERSECTION"
+    assert "SLOW_CYCLES" in scenarios
+    assert "MACHINE_START_FAILURE" in scenarios
+
+
+def test_repeated_safety_condition_does_not_spam_alerts():
+    client.post("/api/simulate", json={"scenario": "WORKER_APPROACHING"})
+    client.post("/api/simulate", json={"scenario": "WORKER_APPROACHING"})
+
+    alerts = client.get("/api/alerts").json()
+    events = client.get("/api/events").json()
+    assert len(alerts) == 1
+    assert [event["type"] for event in events[:2]] == ["WORKER_APPROACHING", "WORKER_APPROACHING"]
+    assert client.get("/api/operator-profile/OP001").status_code == 200
 
 
 def test_diagnosis_is_grounded_and_unknown_symptom_is_not_invented():

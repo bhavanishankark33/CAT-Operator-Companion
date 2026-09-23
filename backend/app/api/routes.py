@@ -5,9 +5,9 @@ from app.core.gemini import gemini
 from app.core.store import store
 from app.schemas.contracts import (
     DiagnoseRequest, InterventionCompleteRequest, InterventionStartRequest,
-    QuestionRequest, SimulationRequest, TeachRequest,
+    QuestionRequest, ResetRequest, SimulationRequest, TeachRequest,
 )
-from app.simulator.scenarios import simulate
+from app.simulator.scenarios import SCENARIOS, simulate
 
 router = APIRouter(prefix="/api")
 
@@ -50,6 +50,11 @@ def get_operator(operator_id: str):
     return store.state.operator.model_dump(mode="json")
 
 
+@router.get("/operator-profile/{operator_id}")
+def get_operator_profile(operator_id: str):
+    return get_operator(operator_id)
+
+
 @router.get("/performance")
 def get_performance():
     return store.state.performance.model_dump(mode="json")
@@ -58,6 +63,41 @@ def get_performance():
 @router.get("/training")
 def get_training():
     return store.training
+
+
+@router.get("/analysis")
+def get_analysis():
+    state = store.state
+    return {
+        "situation": state.situation,
+        "risk_predictions": state.risk_predictions,
+        "intentguard": state.intentguard,
+        "counterfactual": state.counterfactual,
+    }
+
+
+@router.get("/counterfactual")
+def get_counterfactual():
+    return store.state.counterfactual or {
+        "verification_status": "not_started",
+        "message": "Simulate SLOW_CYCLES to create a counterfactual coaching opportunity.",
+    }
+
+
+@router.get("/scenarios")
+def get_scenarios():
+    return {"scenarios": sorted(SCENARIOS)}
+
+
+@router.post("/reset")
+def reset(request: ResetRequest | None = None):
+    keep_training = request.keep_training if request else False
+    training = store.training if keep_training else []
+    store.reset()
+    if keep_training:
+        store.training = training
+        store.save()
+    return {"status": "reset", "training_preserved": keep_training}
 
 
 @router.post("/simulate")
@@ -98,7 +138,15 @@ def voice_config():
 
 @router.post("/teach")
 def teach(request: TeachRequest):
+    counterfactual = store.state.counterfactual
     lesson = "For your next three cycles, keep the swing smooth and within your efficient range. Avoid unnecessary travel before dumping."
+    if counterfactual:
+        lesson = (
+            f"Your recent cycle averaged {counterfactual['observed_metric']:.1f} seconds. "
+            f"The {counterfactual['dominant_contributor'].lower()} phase added about "
+            f"{counterfactual['estimated_excess_seconds']:.1f} seconds. For the next three cycles, "
+            "use a smooth, shorter swing and I will verify the improvement."
+        )
     lesson, source = gemini.answer(
         f"Create a 30-second micro-lesson for the skill {request.skill}.",
         store.state.model_dump(mode="json"),
@@ -138,6 +186,7 @@ def start_intervention(request: InterventionStartRequest):
         "before_metric": sum(store.state.performance.recent_cycle_times) / len(store.state.performance.recent_cycle_times),
     }
     store.training.insert(0, intervention)
+    run_pipeline(store, "TRAINING_STARTED", skill=request.skill, intervention_id=intervention["intervention_id"])
     store.save()
     return intervention
 
@@ -150,6 +199,13 @@ def complete_intervention(request: InterventionCompleteRequest):
     after = sum(request.cycle_times) / len(request.cycle_times)
     improvement = item["before_metric"] - after
     item.update({"status": "completed", "after_metric": after, "improvement": improvement, "result": "positive" if improvement > 0 else "neutral"})
+    store.state.performance.recent_cycle_times = [float(value) for value in request.cycle_times]
+    store.state.performance.average_cycle_time = round(after, 1)
+    store.state.task.current_cycle_time = round(after, 1)
     store.state.operator.skill_profile["task_efficiency"] = min(1.0, store.state.operator.skill_profile["task_efficiency"] + (0.04 if improvement > 0 else 0))
+    if store.state.counterfactual:
+        store.state.counterfactual["verification_status"] = "positive" if improvement > 0 else "neutral"
+        store.state.counterfactual["after_metric"] = round(after, 1)
+        store.state.counterfactual["improvement_seconds"] = round(improvement, 1)
     run_pipeline(store, "INTERVENTION_VERIFIED", improvement=round(improvement, 2))
     return item

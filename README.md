@@ -6,7 +6,7 @@ Fresh 24-hour hackathon workspace for a two-person team.
 A proactive operator companion that:
 1. understands live simulated machine/operator/task state,
 2. predicts risk and likely next operator actions,
-3. proactively alerts/coaches through dashboard + Vapi voice,
+3. proactively alerts/coaches through dashboard + browser voice,
 4. answers grounded questions,
 5. teaches after mistakes or performance deviations,
 6. verifies whether coaching improved subsequent behavior.
@@ -14,10 +14,9 @@ A proactive operator companion that:
 ## Stack
 - Frontend: React + Vite + Tailwind CSS
 - Backend: Python + FastAPI
-- Voice: browser speech synthesis (free fallback), with the existing Vapi frontend integration still available
+- Voice: browser speech synthesis, with the existing Vapi frontend integration still available
 - Storage: local JSON file (`data/companion_state.json`)
 - LLM: Gemini API with optional comma-separated key rotation
-- Voice: browser speech synthesis, no voice API key required
 - Simulation: Python
 - Testing: Pytest + frontend tests
 - Git: GitHub feature branches
