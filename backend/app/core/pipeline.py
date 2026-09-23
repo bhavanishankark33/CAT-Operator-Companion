@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.core.store import StateStore
-from app.schemas.contracts import Event, Intervention, IntentPrediction, RiskLevel
+from app.companion import companion
+from app.schemas.contracts import Event, IntentPrediction, RiskLevel
 
 
 TRANSITIONS = {
@@ -171,32 +172,8 @@ def run_pipeline(store: StateStore, event_type: str, **payload) -> dict:
     if state.risk_predictions:
         highest = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
         event.severity = max((item["severity"] for item in state.risk_predictions), key=lambda item: highest[item])
-    state.intervention = None
-
-    if state.safety.risk in ("HIGH", "CRITICAL") or prediction.risk in ("HIGH", "CRITICAL"):
-        state.intervention = Intervention(
-            level=3,
-            channel="voice",
-            message="Warning. Worker approaching your right swing area. Hold movement until the area is clear.",
-            reason="predicted_worker_intersection",
-            expires_in_sec=8,
-        )
-        store.add_alert({"event": event.model_dump(mode="json"), "intervention": state.intervention.model_dump()})
-    elif state.safety.risk == "MEDIUM":
-        state.intervention = Intervention(
-            level=1,
-            channel="dashboard",
-            message=state.safety.active_alert or "A medium-risk condition needs attention.",
-            reason="risk_condition",
-        )
-        store.add_alert({"event": event.model_dump(mode="json"), "intervention": state.intervention.model_dump()})
-    elif state.performance.deviation:
-        state.intervention = Intervention(
-            level=1,
-            channel="dashboard",
-            message="Cycle time is above your recent efficient baseline; the swing phase is the main contributor.",
-            reason="performance_deviation",
-        )
+    state.intervention = companion.decide(state, prediction, state.risk_predictions)
+    if state.intervention:
         store.add_alert({"event": event.model_dump(mode="json"), "intervention": state.intervention.model_dump()})
 
     state.recent_events = store.events[:20]
